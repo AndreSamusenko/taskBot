@@ -1,6 +1,6 @@
 from subprocess import call
 from os import listdir
-
+from os.path import isfile
 
 class Tasker:
     PYTHON_PATH = "python.exe"
@@ -31,16 +31,25 @@ class Tasker:
             tests_pass += 1
         return True
 
+    def __safe_open__(self, task_name, file_name):
+        path = f"{self.TASKS_FOLDER}/{task_name}/{file_name}"
+
+        text = "Пока нет условия"
+        if isfile(path):
+            text = open(path, "r", encoding="UTF-8").read()
+
+        return text
+
     def get_task(self, task_name):
         condition = "условие"
         input_data = "входные"
         output_data = "выходные"
         example = "пример"
 
-        task = {condition: open(f"{self.TASKS_FOLDER}/{task_name}/{self.TASK_FILE}", "r").read(),
-                input_data: open(f"{self.TASKS_FOLDER}/{task_name}/{self.INPUT_CONDITION}", "r").read(),
-                output_data: open(f"{self.TASKS_FOLDER}/{task_name}/{self.OUTPUT_CONDITION}", "r").read(),
-                example: open(f"{self.TASKS_FOLDER}/{task_name}/{self.EXAMPLE_FILE}", "r").read()}
+        task = {condition: self.__safe_open__(task_name, self.TASK_FILE),
+                input_data: self.__safe_open__(task_name, self.INPUT_CONDITION),
+                output_data: self.__safe_open__(task_name, self.OUTPUT_CONDITION),
+                example: self.__safe_open__(task_name, self.EXAMPLE_FILE)}
 
         return task
 
