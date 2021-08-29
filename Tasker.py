@@ -2,6 +2,7 @@ from subprocess import call
 from os import listdir
 from os.path import isfile
 
+
 class Tasker:
     PYTHON_PATH = "python.exe"
     TESTS_FOLDER = "tests"
@@ -13,6 +14,7 @@ class Tasker:
     INPUT_CONDITION = "Входные.txt"
     OUTPUT_CONDITION = "Выходные.txt"
     EXAMPLE_FILE = "Пример.txt"
+    EXAMPLES_SPLIT = "-------------------------------------------------------------"
 
     def test_task(self, task_name):
         tests_pass = 0
@@ -41,18 +43,16 @@ class Tasker:
         return text
 
     def get_task(self, task_name):
-        condition = "условие"
-        input_data = "входные"
-        output_data = "выходные"
-        example = "пример"
+        files = [self.TASK_FILE, self.INPUT_CONDITION, self.OUTPUT_CONDITION, self.EXAMPLE_FILE]
 
-        task = {condition: self.__safe_open__(task_name, self.TASK_FILE),
-                input_data: self.__safe_open__(task_name, self.INPUT_CONDITION),
-                output_data: self.__safe_open__(task_name, self.OUTPUT_CONDITION),
-                example: self.__safe_open__(task_name, self.EXAMPLE_FILE)}
+        task = {}
+        for file in files:
+            task[file] = self.__safe_open__(task_name, file)
 
         return task
 
     def get_all_tasks(self):
         return listdir(self.TASKS_FOLDER)
+
+
 

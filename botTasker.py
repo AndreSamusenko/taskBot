@@ -89,7 +89,7 @@ class TelegramBot:
                     req_post(self.BASE_URL + "editMessageText",
                              data={"chat_id": chat_id,
                                    "message_id": mes_id,
-                                   "text": self.NOW_IN_SOLUTION_MES + f"{data}",
+                                   "text": self.NOW_IN_SOLUTION_MES + f'"{data}"',
                                    "reply_markup": json_dumps({})})
 
                     # ответ на нажатие клавиши в клаве
@@ -100,10 +100,29 @@ class TelegramBot:
                     task = tasker.get_task(data)
                     req_post(self.BASE_URL + "sendMessage",
                              data={"chat_id": chat_id,
-                                   "text": task["условие"]})
+                                   "text": self.__parse_task__(task)})
 
         if response["result"]:
             self.offset = response["result"][-1]['update_id'] + 1
+
+    @staticmethod
+    def __parse_task__(task):
+        # examples_raw = task[tasker.EXAMPLE_FILE].split()
+        # examples = []
+
+        decorated_task = "-------------------------Условие---------------------------\n\n" \
+                         f"{task[tasker.TASK_FILE]}\n\n" \
+                         "-------------------------------------------------------------\n\n\n" \
+                         "-----------------------Входные данные-------------------\n" \
+                         f"{task[tasker.INPUT_CONDITION]}\n" \
+                         "-------------------------------------------------------------\n\n\n" \
+                         "-----------------------Выходные данные------------------\n" \
+                         f"{task[tasker.OUTPUT_CONDITION]}\n" \
+                         "-------------------------------------------------------------\n\n\n" \
+                         "------------------------Примеры----------------------------\n" \
+                         f"{task[tasker.EXAMPLE_FILE]}\n" \
+                         "-------------------------------------------------------------\n"
+        return decorated_task
 
 
 # ----------MAIN-------------
