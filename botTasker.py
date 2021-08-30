@@ -4,6 +4,7 @@ from json import dumps as json_dumps
 from Tasker import Tasker
 from time import sleep
 
+
 class TelegramBot:
     TOKEN = "1958366332:AAE-Pl4mc4R0ntBravSOAKPHXDVd68_mbBk"
     BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
@@ -12,6 +13,10 @@ class TelegramBot:
     CHOOSE_TASK_MES = "Выбирай одну из задач"
     NOW_IN_SOLUTION_MES = "Сейчас решается задача "
     TASK_SELECTED_MES = "Задача выбрана"
+    AVOID_SOLVING_MES = "Вы успешно отказались от решения задачи"
+    TESTING_TASK_MES = "Тестируем Ваше решение"
+    TASK_FAILED_MES = "Не прошёл тест №"
+    ACCEPTED_MES = "Принято!"
 
     NOT_DETECTED_MES = "Неизвестная команда"
     SOLVE_TASKS_MES = "Решать задачи"
@@ -70,12 +75,29 @@ class TelegramBot:
                                      data={"chat_id": chat_id,
                                            "text": self.NOT_DETECTED_MES})
 
-                    # elif state == "add":
-                    #     pass
-                    #     req_post(self.BASE_URL + "sendMessage",
-                    #              data={"chat_id": chat_id,
-                    #                    "text": message})
-                    #     self.states.pop(chat_id, None)
+                    else:
+                        if text.lower() == "закончить":
+
+                            req_post(self.BASE_URL + "sendMessage",
+                                     data={"chat_id": chat_id,
+                                           "text": self.AVOID_SOLVING_MES})
+                            self.states.pop(chat_id, None)
+                        else:
+                            open("user_code.py", "w", encoding="UTF-8").write(text)
+                            req_post(self.BASE_URL + "sendMessage",
+                                     data={"chat_id": chat_id,
+                                           "text": self.TESTING_TASK_MES})
+
+                            result = tasker.test_task(state)
+                            print(result)
+                            if type(result) is int:
+                                message = self.TASK_FAILED_MES + str(result)
+                            else:
+                                message = self.ACCEPTED_MES
+
+                            req_post(self.BASE_URL + "sendMessage",
+                                     data={"chat_id": chat_id,
+                                           "text": message})
 
             elif callback_query := update.get("callback_query"):
                 if mes := callback_query.get("message"):
@@ -101,6 +123,7 @@ class TelegramBot:
                     req_post(self.BASE_URL + "sendMessage",
                              data={"chat_id": chat_id,
                                    "text": self.__parse_task__(task)})
+                    self.states[chat_id] = data
 
         if response["result"]:
             self.offset = response["result"][-1]['update_id'] + 1

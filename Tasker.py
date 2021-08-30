@@ -17,14 +17,14 @@ class Tasker:
     EXAMPLES_SPLIT = "-------------------------------------------------------------"
 
     def test_task(self, task_name):
-        tests_pass = 0
+        tests_pass = 1
 
         for test_num in listdir(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}"):
             call((self.PYTHON_PATH, self.USER_CODE_FILE),
                  stdin=open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.INPUT_FILE}", "r"),
-                 stdout=open(f"{self.TASKS_FOLDER}/{self.OUTPUT_FILE}", "w"))
+                 stdout=open(self.OUTPUT_FILE, "w"))
 
-            user_answer = open(f"{self.TASKS_FOLDER}/{self.OUTPUT_FILE}", "r").read()
+            user_answer = open(self.OUTPUT_FILE, "r").read()
             right_answer = open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.OUTPUT_FILE}", "r").read()
 
             if user_answer.strip() != right_answer.strip():
@@ -53,6 +53,7 @@ class Tasker:
 
     def get_all_tasks(self):
         return listdir(self.TASKS_FOLDER)
+
 
 
 
