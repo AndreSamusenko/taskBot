@@ -1,31 +1,44 @@
 from requests import get as req_get, post as req_post
 from threading import Thread
-from json import dumps as json_dumps
+from json import dumps as json_dumps, dump as json_dump, load as json_load
 from Tasker import Tasker
 from time import sleep
+from copy import copy
 
 
 class TelegramBot:
     TOKEN = "1958366332:AAE-Pl4mc4R0ntBravSOAKPHXDVd68_mbBk"
     BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
+    BASE_NAME = "progress.json"
+    ADMIN_ID = 523468577
 
     WELCOME_MES = "Выбирай действие на клаве внизу 👇"
-    CHOOSE_TASK_MES = "Выбирай одну из задач"
-    NOW_IN_SOLUTION_MES = "Сейчас решается задача "
-    TASK_SELECTED_MES = "Задача выбрана"
-    AVOID_SOLVING_MES = "Вы успешно отказались от решения задачи"
-    TESTING_TASK_MES = "Тестируем Ваше решение"
-    TASK_FAILED_MES = "Не прошёл тест №"
-    ACCEPTED_MES = "Принято!"
-    INCORRECT_FILE_MES = "Некорректный файл"
-    ERRORS_IN_CODE_MES = "Ошибки в коде:\n"
-    NO_TASK_SELECTED_MES = "Сейчас нет решаемых задач"
+    CHOOSE_TASK_MES = "Выбирай одну из задач 📋"
+    NOW_IN_SOLUTION_MES = "🤔 Сейчас решается задача "
+    TASK_SELECTED_MES = "Задача выбрана ✔"
+    AVOID_SOLVING_MES = "Ты успешно отказался от решения задачи ✔"
+    TESTING_TASK_MES = "Тестируем решение ⏳"
+    TASK_FAILED_MES = "❌ Не прошёл тест №"
+    ACCEPTED_MES = "✅ Принято!"
+    INCORRECT_FILE_MES = "❌ Некорректный файл"
+    ERRORS_IN_CODE_MES = "🚧 Ошибки в коде:\n"
+    NO_TASK_SELECTED_MES = "Сейчас нет решаемых задач 😶"
     STOP_MES = "закончить"
+    SOLVED_TASKS_MES = "📊 Всего решенных задач: "
+    NO_SOLVED_MES = "🤪 Ты пока не решили ни одной задачи"
+    ALL_STATS_COMMAND = "stats"
 
-    NOT_DETECTED_MES = "Неизвестная команда"
-    SOLVE_TASKS_MES = "Решать задачи"
-    MY_STATS_MES = "Моя статистика"
-    NOW_IN_PROGRESS_MES = "Решаемая сейчас задача"
+    NOT_DETECTED_MES = "⛔ Неизвестная команда"
+    SOLVE_TASKS_MES = "🧠 Решать задачи"
+    MY_STATS_MES = "📈 Моя статистика"
+    NOW_IN_PROGRESS_MES = "🤔 Решаемая сейчас задача"
+
+    HELP_TEXT = "Данный бот🤖 создан для тренировки навыков программирования👨‍💻.\n" \
+                "Он умеет выдавать задачи, проверять их решение, вести статистику.\n" \
+                "Пока поддерживается только язык программирования Python 🐍.\n\n" \
+                "Все ответы для задач проверяются посимвольно, поэтому для прохождения тестов " \
+                "необходимо избегать лишних символов в выводе (например, лишнего пробела в конце строки).\n" \
+                "Если хочешь перестать решать задачу, отправляй боту слово 'закончить'."
 
     MAIN_KEYBOARD = {"keyboard": [[SOLVE_TASKS_MES],
                                   [MY_STATS_MES],
@@ -34,8 +47,10 @@ class TelegramBot:
 
     offset = 0
     states = {}
+    solved_tasks = {}
 
     def __init__(self):
+        self.read_from_base()
         Thread(target=self.start_parsing).start()
 
     def start_parsing(self):
@@ -44,7 +59,7 @@ class TelegramBot:
             sleep(1)
 
     def parse_messages(self):
-        response = req_get(self.BASE_URL + "getUpdates", data={"offset": self.offset}).json()
+        response = self.get_updates()
 
         for update in response["result"]:
             if mes := update.get("message"):
@@ -56,28 +71,34 @@ class TelegramBot:
                     state = self.states.get(chat_id, "start")
 
                     if state == "start":
-                        if text == "/start":
+                        if text == "/start" or text == "/keyboard":
                             self.send_keyboard(chat_id)
 
+                        elif text == "/help":
+                            self.send_message(chat_id, self.HELP_TEXT)
+
                         elif text == self.NOW_IN_PROGRESS_MES:
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.NO_TASK_SELECTED_MES})
+                            self.send_message(chat_id, self.NO_TASK_SELECTED_MES)
+
+                        elif text == self.MY_STATS_MES:
+                            self.get_stats(chat_id)
 
                         elif text == self.SOLVE_TASKS_MES:
                             self.solve_tasks_action(chat_id)
 
+                        elif text == self.ALL_STATS_COMMAND and chat_id == self.ADMIN_ID:
+                            message = ""
+                            for user in self.solved_tasks:
+                                message += user + ": " + ", ".join(list(self.solved_tasks[user]))
+
+                            self.send_message(chat_id, message)
+
                         else:
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.NOT_DETECTED_MES})
+                            self.send_message(chat_id, self.NOT_DETECTED_MES)
 
                     else:
                         if text.lower() == self.STOP_MES:
-
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.AVOID_SOLVING_MES})
+                            self.send_message(chat_id, self.AVOID_SOLVING_MES)
                             self.states.pop(chat_id, None)
 
                         elif text == self.SOLVE_TASKS_MES:
@@ -85,9 +106,8 @@ class TelegramBot:
                             self.states.pop(chat_id, None)
 
                         elif text == self.NOW_IN_PROGRESS_MES:
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.NOW_IN_SOLUTION_MES + f'"{state}"'})
+                            self.send_message(chat_id, self.NOW_IN_SOLUTION_MES + f'"{state}"')
+
                         else:
                             open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(text)
                             Thread(target=self.start_testing, args=(chat_id, state)).start()
@@ -124,9 +144,17 @@ class TelegramBot:
             message = self.ACCEPTED_MES
             self.states.pop(chat_id, None)
 
-        req_post(self.BASE_URL + "sendMessage",
-                 data={"chat_id": chat_id,
-                       "text": message})
+            user_id = str(chat_id)
+            if self.solved_tasks.get(user_id):
+                self.solved_tasks[user_id].add(state)
+
+            else:
+                self.solved_tasks[user_id] = set()
+                self.solved_tasks[user_id].add(state)
+
+            Thread(target=self.save_base).start()
+
+        self.send_message(chat_id, message)
 
     def solve_tasks_action(self, chat_id):
         tasks = tasker.get_all_tasks()
@@ -184,6 +212,43 @@ class TelegramBot:
                  data={"chat_id": chat_id,
                        "text": self.__parse_task__(task)})
         self.states[chat_id] = data
+
+    def send_message(self, chat_id, text):
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": text})
+
+    def get_updates(self):
+        return req_get(self.BASE_URL + "getUpdates", data={"offset": self.offset}).json()
+
+    def get_stats(self, chat_id):
+        total = len(tasker.get_all_tasks())
+        if solved_tasks := self.solved_tasks.get(str(chat_id)):
+            message = self.SOLVED_TASKS_MES + f"{str(len(solved_tasks))}/{total}" + "\n\n"
+            for task in solved_tasks:
+                message += task + " ✅" + "\n"
+        else:
+            message = self.NO_SOLVED_MES
+
+        self.send_message(chat_id, message)
+
+    def save_base(self):
+        base_to_json = copy(self.solved_tasks)
+        for key in base_to_json:
+            base_to_json[key] = list(base_to_json[key])
+
+        with open(self.BASE_NAME, 'w', encoding="UTF-8") as f:
+            json_dump(base_to_json, f)
+
+    def read_from_base(self):
+        with open(self.BASE_NAME, "r", encoding="UTF-8") as f:
+            base_from_json = json_load(f)
+
+        self.solved_tasks = {}
+        for key in base_from_json:
+            self.solved_tasks[key] = set(base_from_json[key])
+
+        print(self.solved_tasks)
 
     @staticmethod
     def __parse_task__(task):
