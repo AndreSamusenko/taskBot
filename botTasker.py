@@ -17,15 +17,17 @@ class TelegramBot:
     TESTING_TASK_MES = "Тестируем Ваше решение"
     TASK_FAILED_MES = "Не прошёл тест №"
     ACCEPTED_MES = "Принято!"
+    INCORRECT_FILE_MES = "Некорректный файл"
+    ERRORS_IN_CODE_MES = "Ошибки в коде:\n"
 
     NOT_DETECTED_MES = "Неизвестная команда"
     SOLVE_TASKS_MES = "Решать задачи"
     MY_STATS_MES = "Моя статистика"
-    ACTION_3 = "Действие 3"
+    NOW_IN_PROGRESS_MES = "Решаемая сейчас задача"
 
     MAIN_KEYBOARD = {"keyboard": [[SOLVE_TASKS_MES],
                                   [MY_STATS_MES],
-                                  [ACTION_3]],
+                                  [NOW_IN_PROGRESS_MES]],
                      "one_time_keyboard": False}
 
     offset = 0
@@ -46,6 +48,7 @@ class TelegramBot:
             if mes := update.get("message"):
                 text = mes.get("text")
                 chat_id = mes["chat"]["id"]
+                document = mes.get("document")
 
                 if text:
                     state = self.states.get(chat_id, "start")
@@ -83,21 +86,26 @@ class TelegramBot:
                                            "text": self.AVOID_SOLVING_MES})
                             self.states.pop(chat_id, None)
                         else:
-                            open("user_code.py", "w", encoding="UTF-8").write(text)
+                            open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(text)
+                            Thread(target=self.start_testing, args=(chat_id, state)).start()
+
+                elif document:
+                    state = self.states.get(chat_id, "start")
+                    if state != "start":
+                        file_id = document.get('file_id')
+
+                        file_path = req_get(self.BASE_URL + "getFile",
+                                            params={"file_id": file_id}).json().get('result').get('file_path')
+
+                        if file_path and file_path[-3:] == ".py":
+                            file = req_get(f"https://api.telegram.org/file/bot{self.TOKEN}/{file_path}")
+                            open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(file.text)
+
+                            Thread(target=self.start_testing, args=(chat_id, state)).start()
+                        else:
                             req_post(self.BASE_URL + "sendMessage",
                                      data={"chat_id": chat_id,
-                                           "text": self.TESTING_TASK_MES})
-
-                            result = tasker.test_task(state)
-                            print(result)
-                            if type(result) is int:
-                                message = self.TASK_FAILED_MES + str(result)
-                            else:
-                                message = self.ACCEPTED_MES
-
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": message})
+                                           "text": self.INCORRECT_FILE_MES})
 
             elif callback_query := update.get("callback_query"):
                 if mes := callback_query.get("message"):
@@ -127,6 +135,25 @@ class TelegramBot:
 
         if response["result"]:
             self.offset = response["result"][-1]['update_id'] + 1
+
+    def start_testing(self, chat_id, state):
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": self.TESTING_TASK_MES})
+
+        test_failed = tasker.test_task(state)
+        errors = open(tasker.ERROR_FILE, "r", encoding="UTF-8").read()
+        if errors:
+            message = self.ERRORS_IN_CODE_MES + errors
+        elif test_failed:
+            message = self.TASK_FAILED_MES + str(test_failed)
+        else:
+            message = self.ACCEPTED_MES
+            self.states.pop(chat_id, None)
+
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": message})
 
     @staticmethod
     def __parse_task__(task):

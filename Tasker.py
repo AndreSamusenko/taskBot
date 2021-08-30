@@ -9,20 +9,25 @@ class Tasker:
     TASKS_FOLDER = "tasks"
     INPUT_FILE = "input.txt"
     OUTPUT_FILE = "output.txt"
-    USER_CODE_FILE = "user_code.py"
+    USER_CODE_FILE = "your_code.py"
     TASK_FILE = "Условие.txt"
     INPUT_CONDITION = "Входные.txt"
     OUTPUT_CONDITION = "Выходные.txt"
+    ERROR_FILE = "error.txt"
     EXAMPLE_FILE = "Пример.txt"
     EXAMPLES_SPLIT = "-------------------------------------------------------------"
 
     def test_task(self, task_name):
+        open(self.ERROR_FILE, "w").write("")
         tests_pass = 1
 
         for test_num in listdir(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}"):
-            call((self.PYTHON_PATH, self.USER_CODE_FILE),
-                 stdin=open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.INPUT_FILE}", "r"),
-                 stdout=open(self.OUTPUT_FILE, "w"))
+            try:
+                call((self.PYTHON_PATH, self.USER_CODE_FILE),
+                     stdin=open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.INPUT_FILE}", "r"),
+                     stdout=open(self.OUTPUT_FILE, "w"), stderr=open(self.ERROR_FILE, "w"))
+            except Exception:
+                pass
 
             user_answer = open(self.OUTPUT_FILE, "r").read()
             right_answer = open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.OUTPUT_FILE}", "r").read()
@@ -31,7 +36,7 @@ class Tasker:
                 return tests_pass
 
             tests_pass += 1
-        return True
+        return 0
 
     def __safe_open__(self, task_name, file_name):
         path = f"{self.TASKS_FOLDER}/{task_name}/{file_name}"
@@ -53,7 +58,6 @@ class Tasker:
 
     def get_all_tasks(self):
         return listdir(self.TASKS_FOLDER)
-
 
 
 
