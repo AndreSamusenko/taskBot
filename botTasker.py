@@ -42,8 +42,7 @@ class TelegramBot:
                 "Решение можно присылать в виде текста сообщением, либо же python-файлом."
 
     MAIN_KEYBOARD = {"keyboard": [[SOLVE_TASKS_MES],
-                                  [MY_STATS_MES],
-                                  [NOW_IN_PROGRESS_MES]],
+                                  [MY_STATS_MES]],
                      "one_time_keyboard": False}
 
     offset = 0
@@ -72,7 +71,11 @@ class TelegramBot:
                     state = self.states.get(chat_id, "start")
 
                     if state == "start":
-                        if text == "/start" or text == "/keyboard":
+                        if text == "/start":
+                            self.send_message(chat_id, self.HELP_TEXT)
+                            self.send_keyboard(chat_id)
+
+                        elif text == "/keyboard":
                             self.send_keyboard(chat_id)
 
                         elif text == "/help":
