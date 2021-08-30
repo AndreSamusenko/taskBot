@@ -38,7 +38,8 @@ class TelegramBot:
                 "Пока поддерживается только язык программирования Python 🐍.\n\n" \
                 "Все ответы для задач проверяются посимвольно, поэтому для прохождения тестов " \
                 "необходимо избегать лишних символов в выводе (например, лишнего пробела в конце строки).\n" \
-                "Если хочешь перестать решать задачу, отправляй боту слово 'закончить'."
+                "Если хочешь перестать решать задачу, отправляй боту слово 'закончить'.\n" \
+                "Решение можно присылать в виде текста сообщением, либо же python-файлом."
 
     MAIN_KEYBOARD = {"keyboard": [[SOLVE_TASKS_MES],
                                   [MY_STATS_MES],
@@ -160,8 +161,10 @@ class TelegramBot:
         tasks = tasker.get_all_tasks()
 
         buttons = []
+        solved_tasks = self.solved_tasks.get(str(chat_id))
         for task in tasks:
-            buttons.append([{"text": task, 'callback_data': task}])
+            task_with_tag = task + ("✅" if task in solved_tasks else "")
+            buttons.append([{"text": task_with_tag, 'callback_data': task}])
 
         keyboard = json_dumps({'inline_keyboard': buttons})
         req_post(self.BASE_URL + "sendMessage",
@@ -225,7 +228,7 @@ class TelegramBot:
         total = len(tasker.get_all_tasks())
         if solved_tasks := self.solved_tasks.get(str(chat_id)):
             message = self.SOLVED_TASKS_MES + f"{str(len(solved_tasks))}/{total}" + "\n\n"
-            for task in solved_tasks:
+            for task in sorted(solved_tasks):
                 message += task + " ✅" + "\n"
         else:
             message = self.NO_SOLVED_MES
@@ -255,8 +258,8 @@ class TelegramBot:
         # examples_raw = task[tasker.EXAMPLE_FILE].split()
         # examples = []
 
-        decorated_task = "-------------------------Условие---------------------------\n\n" \
-                         f"{task[tasker.TASK_FILE]}\n\n" \
+        decorated_task = "-------------------------Условие---------------------------\n" \
+                         f"{task[tasker.TASK_FILE]}\n" \
                          "-------------------------------------------------------------\n\n\n" \
                          "-----------------------Входные данные-------------------\n" \
                          f"{task[tasker.INPUT_CONDITION]}\n" \
