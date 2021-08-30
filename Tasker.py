@@ -57,7 +57,7 @@ class Tasker:
         return task
 
     def get_all_tasks(self):
-        return listdir(self.TASKS_FOLDER)
+        return sorted(listdir(self.TASKS_FOLDER))
 
 
 
