@@ -19,6 +19,8 @@ class TelegramBot:
     ACCEPTED_MES = "Принято!"
     INCORRECT_FILE_MES = "Некорректный файл"
     ERRORS_IN_CODE_MES = "Ошибки в коде:\n"
+    NO_TASK_SELECTED_MES = "Сейчас нет решаемых задач"
+    STOP_MES = "закончить"
 
     NOT_DETECTED_MES = "Неизвестная команда"
     SOLVE_TASKS_MES = "Решать задачи"
@@ -55,23 +57,15 @@ class TelegramBot:
 
                     if state == "start":
                         if text == "/start":
+                            self.send_keyboard(chat_id)
+
+                        elif text == self.NOW_IN_PROGRESS_MES:
                             req_post(self.BASE_URL + "sendMessage",
                                      data={"chat_id": chat_id,
-                                           "text": self.WELCOME_MES,
-                                           'reply_markup': json_dumps(self.MAIN_KEYBOARD)})
+                                           "text": self.NO_TASK_SELECTED_MES})
 
                         elif text == self.SOLVE_TASKS_MES:
-                            tasks = tasker.get_all_tasks()
-
-                            buttons = []
-                            for task in tasks:
-                                buttons.append([{"text": task, 'callback_data': task}])
-
-                            keyboard = json_dumps({'inline_keyboard': buttons})
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.CHOOSE_TASK_MES,
-                                           'reply_markup': keyboard})
+                            self.solve_tasks_action(chat_id)
 
                         else:
                             req_post(self.BASE_URL + "sendMessage",
@@ -79,12 +73,21 @@ class TelegramBot:
                                            "text": self.NOT_DETECTED_MES})
 
                     else:
-                        if text.lower() == "закончить":
+                        if text.lower() == self.STOP_MES:
 
                             req_post(self.BASE_URL + "sendMessage",
                                      data={"chat_id": chat_id,
                                            "text": self.AVOID_SOLVING_MES})
                             self.states.pop(chat_id, None)
+
+                        elif text == self.SOLVE_TASKS_MES:
+                            self.solve_tasks_action(chat_id)
+                            self.states.pop(chat_id, None)
+
+                        elif text == self.NOW_IN_PROGRESS_MES:
+                            req_post(self.BASE_URL + "sendMessage",
+                                     data={"chat_id": chat_id,
+                                           "text": self.NOW_IN_SOLUTION_MES + f'"{state}"'})
                         else:
                             open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(text)
                             Thread(target=self.start_testing, args=(chat_id, state)).start()
@@ -92,20 +95,7 @@ class TelegramBot:
                 elif document:
                     state = self.states.get(chat_id, "start")
                     if state != "start":
-                        file_id = document.get('file_id')
-
-                        file_path = req_get(self.BASE_URL + "getFile",
-                                            params={"file_id": file_id}).json().get('result').get('file_path')
-
-                        if file_path and file_path[-3:] == ".py":
-                            file = req_get(f"https://api.telegram.org/file/bot{self.TOKEN}/{file_path}")
-                            open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(file.text)
-
-                            Thread(target=self.start_testing, args=(chat_id, state)).start()
-                        else:
-                            req_post(self.BASE_URL + "sendMessage",
-                                     data={"chat_id": chat_id,
-                                           "text": self.INCORRECT_FILE_MES})
+                        self.work_with_file(document, chat_id, state)
 
             elif callback_query := update.get("callback_query"):
                 if mes := callback_query.get("message"):
@@ -114,24 +104,7 @@ class TelegramBot:
                     callback_query_id = callback_query.get("id")
                     mes_id = mes.get("message_id")
 
-                    # редактирование клавы
-
-                    req_post(self.BASE_URL + "editMessageText",
-                             data={"chat_id": chat_id,
-                                   "message_id": mes_id,
-                                   "text": self.NOW_IN_SOLUTION_MES + f'"{data}"',
-                                   "reply_markup": json_dumps({})})
-
-                    # ответ на нажатие клавиши в клаве
-                    req_post(self.BASE_URL + "answerCallbackQuery",
-                             data={"callback_query_id": callback_query_id,
-                                   "text": self.TASK_SELECTED_MES})
-
-                    task = tasker.get_task(data)
-                    req_post(self.BASE_URL + "sendMessage",
-                             data={"chat_id": chat_id,
-                                   "text": self.__parse_task__(task)})
-                    self.states[chat_id] = data
+                    self.select_task(chat_id, mes_id, data, callback_query_id)
 
         if response["result"]:
             self.offset = response["result"][-1]['update_id'] + 1
@@ -154,6 +127,63 @@ class TelegramBot:
         req_post(self.BASE_URL + "sendMessage",
                  data={"chat_id": chat_id,
                        "text": message})
+
+    def solve_tasks_action(self, chat_id):
+        tasks = tasker.get_all_tasks()
+
+        buttons = []
+        for task in tasks:
+            buttons.append([{"text": task, 'callback_data': task}])
+
+        keyboard = json_dumps({'inline_keyboard': buttons})
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": self.CHOOSE_TASK_MES,
+                       'reply_markup': keyboard})
+
+    def send_keyboard(self, chat_id):
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": self.WELCOME_MES,
+                       'reply_markup': json_dumps(self.MAIN_KEYBOARD)})
+
+    def edit_keyboard(self, chat_id, mes_id, data):
+        req_post(self.BASE_URL + "editMessageText",
+                 data={"chat_id": chat_id,
+                       "message_id": mes_id,
+                       "text": self.NOW_IN_SOLUTION_MES + f'"{data}"',
+                       "reply_markup": json_dumps({})})
+
+    def answer_keyboard_button(self, callback_query_id):
+        req_post(self.BASE_URL + "answerCallbackQuery",
+                 data={"callback_query_id": callback_query_id,
+                       "text": self.TASK_SELECTED_MES})
+
+    def work_with_file(self, document, chat_id, state):
+        file_id = document.get('file_id')
+
+        file_path = req_get(self.BASE_URL + "getFile",
+                            params={"file_id": file_id}).json().get('result').get('file_path')
+
+        if file_path and file_path[-3:] == ".py":
+            file = req_get(f"https://api.telegram.org/file/bot{self.TOKEN}/{file_path}")
+            open(tasker.USER_CODE_FILE, "w", encoding="UTF-8").write(file.text)
+
+            Thread(target=self.start_testing, args=(chat_id, state)).start()
+        else:
+            req_post(self.BASE_URL + "sendMessage",
+                     data={"chat_id": chat_id,
+                           "text": self.INCORRECT_FILE_MES})
+
+    def select_task(self, chat_id, mes_id, data, callback_query_id):
+        self.edit_keyboard(chat_id, mes_id, data)
+        self.answer_keyboard_button(callback_query_id)
+
+        task = tasker.get_task(data)
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": self.__parse_task__(task)})
+        self.states[chat_id] = data
 
     @staticmethod
     def __parse_task__(task):
