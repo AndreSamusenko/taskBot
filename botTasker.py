@@ -90,7 +90,7 @@ class TelegramBot:
                         elif text == self.ALL_STATS_COMMAND and chat_id == self.ADMIN_ID:
                             message = ""
                             for user in self.solved_tasks:
-                                message += user + ": " + ", ".join(list(self.solved_tasks[user]))
+                                message += user + ": " + ", ".join(list(self.solved_tasks[user])) + "\n"
 
                             self.send_message(chat_id, message)
 
@@ -161,7 +161,7 @@ class TelegramBot:
         tasks = tasker.get_all_tasks()
 
         buttons = []
-        solved_tasks = self.solved_tasks.get(str(chat_id))
+        solved_tasks = self.solved_tasks.get(str(chat_id), set())
         for task in tasks:
             task_with_tag = task + ("✅" if task in solved_tasks else "")
             buttons.append([{"text": task_with_tag, 'callback_data': task}])
