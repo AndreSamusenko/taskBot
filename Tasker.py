@@ -31,7 +31,8 @@ class Tasker:
 
             user_answer = open(self.OUTPUT_FILE, "r").read()
             right_answer = open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.OUTPUT_FILE}", "r").read()
-
+            print(user_answer)
+            print(right_answer)
             if user_answer.strip() != right_answer.strip():
                 return tests_pass
 
