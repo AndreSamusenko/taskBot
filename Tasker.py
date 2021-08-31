@@ -4,8 +4,8 @@ from os.path import isfile
 
 
 class Tasker:
-    # PYTHON_PATH = "/app/.heroku/python/bin/python"
-    PYTHON_PATH = "python.exe"
+    PYTHON_PATH = "/app/.heroku/python/bin/python"
+    # PYTHON_PATH = "python.exe"
     TESTS_FOLDER = "tests"
     TASKS_FOLDER = "tasks"
     INPUT_FILE = "input.txt"
