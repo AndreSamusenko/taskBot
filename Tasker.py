@@ -1,11 +1,11 @@
-from subprocess import call
+from subprocess import Popen, TimeoutExpired
 from os import listdir
 from os.path import isfile
 
 
 class Tasker:
-    PYTHON_PATH = "/app/.heroku/python/bin/python"
-    # PYTHON_PATH = "python.exe"
+    # PYTHON_PATH = "/app/.heroku/python/bin/python"
+    PYTHON_PATH = "python.exe"
     TESTS_FOLDER = "tests"
     TASKS_FOLDER = "tasks"
     INPUT_FILE = "input.txt"
@@ -17,6 +17,7 @@ class Tasker:
     ERROR_FILE = "error.txt"
     EXAMPLE_FILE = "Пример.txt"
     EXAMPLES_SPLIT = "-------------------------------------------------------------"
+    ENDLESS_CYCLE_ERROR_CODE = 999
 
     def test_task(self, task_name):
         open(self.ERROR_FILE, "w").write("")
@@ -24,11 +25,13 @@ class Tasker:
 
         for test_num in listdir(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}"):
             try:
-                call((self.PYTHON_PATH, self.USER_CODE_FILE),
-                     stdin=open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.INPUT_FILE}", "r"),
-                     stdout=open(self.OUTPUT_FILE, "w"), stderr=open(self.ERROR_FILE, "w"))
-            except Exception:
-                pass
+                task = Popen((self.PYTHON_PATH, self.USER_CODE_FILE),
+                             stdin=open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.INPUT_FILE}", "r"),
+                             stdout=open(self.OUTPUT_FILE, "w"), stderr=open(self.ERROR_FILE, "w"))
+                task.wait(1)
+
+            except TimeoutExpired:
+                return self.ENDLESS_CYCLE_ERROR_CODE
 
             user_answer = open(self.OUTPUT_FILE, "r").read()
             right_answer = open(f"{self.TASKS_FOLDER}/{task_name}/{self.TESTS_FOLDER}/{test_num}/{self.OUTPUT_FILE}", "r").read()

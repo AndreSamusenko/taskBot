@@ -27,6 +27,7 @@ class TelegramBot:
     SOLVED_TASKS_MES = "📊 Всего решенных задач: "
     NO_SOLVED_MES = "🤪 Ты пока не решили ни одной задачи"
     ALL_STATS_COMMAND = "stats"
+    TIME_EXCEED_MES = "❌ Превышено время ожидания ответа."
 
     NOT_DETECTED_MES = "⛔ Неизвестная команда"
     SOLVE_TASKS_MES = "🧠 Решать задачи"
@@ -142,6 +143,8 @@ class TelegramBot:
         errors = open(tasker.ERROR_FILE, "r", encoding="UTF-8").read()
         if errors:
             message = self.ERRORS_IN_CODE_MES + errors
+        elif test_failed and test_failed == tasker.ENDLESS_CYCLE_ERROR_CODE:
+            message = self.TIME_EXCEED_MES
         elif test_failed:
             message = self.TASK_FAILED_MES + str(test_failed)
         else:
@@ -253,8 +256,6 @@ class TelegramBot:
         self.solved_tasks = {}
         for key in base_from_json:
             self.solved_tasks[key] = set(base_from_json[key])
-
-        print(self.solved_tasks)
 
     @staticmethod
     def __parse_task__(task):
