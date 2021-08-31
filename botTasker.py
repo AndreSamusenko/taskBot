@@ -4,6 +4,7 @@ from json import dumps as json_dumps, dump as json_dump, load as json_load
 from Tasker import Tasker
 from time import sleep
 from copy import copy
+from gist_work import Gist
 
 
 class TelegramBot:
@@ -28,10 +29,12 @@ class TelegramBot:
     NO_SOLVED_MES = "🤪 Ты пока не решили ни одной задачи"
     ALL_STATS_COMMAND = "stats"
     TIME_EXCEED_MES = "❌ Превышено время ожидания ответа."
+    CONSPECTS_MES = "📋 Список полезных конспектов по всем базовым темам Python"
 
     NOT_DETECTED_MES = "⛔ Неизвестная команда"
     SOLVE_TASKS_MES = "🧠 Решать задачи"
     MY_STATS_MES = "📈 Моя статистика"
+    USEFUL_NOTES = "📋 Конспекты по темам"
     NOW_IN_PROGRESS_MES = "🤔 Решаемая сейчас задача"
 
     HELP_TEXT = "Данный бот🤖 создан для тренировки навыков программирования👨‍💻.\n" \
@@ -43,7 +46,8 @@ class TelegramBot:
                 "Решение можно присылать в виде текста сообщением, либо же python-файлом."
 
     MAIN_KEYBOARD = {"keyboard": [[SOLVE_TASKS_MES],
-                                  [MY_STATS_MES]],
+                                  [MY_STATS_MES],
+                                  [USEFUL_NOTES]],
                      "one_time_keyboard": False}
 
     offset = 0
@@ -87,6 +91,9 @@ class TelegramBot:
 
                         elif text == self.MY_STATS_MES:
                             self.get_stats(chat_id)
+
+                        elif text == self.USEFUL_NOTES:
+                            self.send_gists(chat_id)
 
                         elif text == self.SOLVE_TASKS_MES:
                             self.solve_tasks_action(chat_id)
@@ -257,6 +264,19 @@ class TelegramBot:
         for key in base_from_json:
             self.solved_tasks[key] = set(base_from_json[key])
 
+    def send_gists(self, chat_id):
+        gists = gister.get_gists_by_language("Python")
+
+        buttons = []
+        for gist in gists:
+            buttons.append([{"text": gist.get("name"), 'url': gist["link"]}])
+
+        keyboard = json_dumps({'inline_keyboard': buttons})
+        req_post(self.BASE_URL + "sendMessage",
+                 data={"chat_id": chat_id,
+                       "text": self.CONSPECTS_MES,
+                       'reply_markup': keyboard})
+
     @staticmethod
     def __parse_task__(task):
         # examples_raw = task[tasker.EXAMPLE_FILE].split()
@@ -280,3 +300,4 @@ class TelegramBot:
 # ----------MAIN-------------
 tg_bot = TelegramBot()
 tasker = Tasker()
+gister = Gist()
