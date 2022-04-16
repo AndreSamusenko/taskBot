@@ -11,16 +11,16 @@ Now you can write your solution only using Python.
 
 ### Demonstration
 
-![img.png](img.png)
+![scr/img/img.png](img.png)
 
 Choice task:
-![img_1.png](img_1.png)
+![scr/img/img_1.png](img_1.png)
 
 Write solution and get result:
-![img_2.png](img_2.png)
+![scr/img/img_2.png](img_2.png)
 
 Check your stats:
-![img_3.png](img_3.png)
+![scr/img/img_3.png](img_3.png)
 
 Read the teory:
-![img_4.png](img_4.png)
+![scr/img/img_4.png](img_4.png)
