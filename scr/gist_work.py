@@ -1,12 +1,14 @@
 import requests
 from threading import Thread
 from time import sleep
-from config import GIST_TOKEN
+from config import ConfigData
+
+config_data = ConfigData()
 
 
 class Gist:
     GITHUB_API = 'https://api.github.com/gists'
-    GIST_TOKEN = GIST_TOKEN
+    GIST_TOKEN = config_data.GIST_TOKEN
     headers = {'Authorization': f'token {GIST_TOKEN}'}
     MAX_GISTS = 100
 
@@ -31,6 +33,7 @@ class Gist:
         self.gists = requests.get(self.GITHUB_API,
                                   headers=self.headers,
                                   params={"per_page": self.MAX_GISTS}).json()[::-1]
+        print()
         return self.gists
 
     def get_languages(self):

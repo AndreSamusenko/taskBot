@@ -1,1 +1,1 @@
-worker: python botTasker.py
+worker: python scr/botTasker.py

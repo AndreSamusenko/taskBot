@@ -1,20 +1,22 @@
 from subprocess import Popen, TimeoutExpired
 from os import listdir
 from os.path import isfile
-from config import PYTHON_PATH
+from config import ConfigData
+
+config_data = ConfigData()
 
 
 class Tasker:
-    PYTHON_PATH = PYTHON_PATH
+    PYTHON_PATH = config_data.PYTHON_PATH
     TESTS_FOLDER = "tests"
     TASKS_FOLDER = "tasks"
     INPUT_FILE = "input.txt"
     OUTPUT_FILE = "output.txt"
-    USER_CODE_FILE = "your_code.py"
+    USER_CODE_FILE = "scr/your_code.py"
     TASK_FILE = "Условие.txt"
     INPUT_CONDITION = "Входные.txt"
     OUTPUT_CONDITION = "Выходные.txt"
-    ERROR_FILE = "error.txt"
+    ERROR_FILE = "scr/error.txt"
     EXAMPLE_FILE = "Пример.txt"
     EXAMPLES_SPLIT = "-------------------------------------------------------------"
     ENDLESS_CYCLE_ERROR_CODE = 999

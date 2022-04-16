@@ -5,13 +5,15 @@ from Tasker import Tasker
 from time import sleep
 from copy import copy
 from gist_work import Gist
-from config import BOT_TOKEN
+from config import ConfigData
+
+config_data = ConfigData()
 
 
 class TelegramBot:
-    TOKEN = BOT_TOKEN
+    TOKEN = config_data.BOT_TOKEN
     BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
-    BASE_NAME = "progress.json"
+    BASE_NAME = "scr/progress.json"
     ADMIN_ID = 523468577
 
     WELCOME_MES = "Выбирай действие на клаве внизу 👇"
@@ -68,6 +70,7 @@ class TelegramBot:
         response = self.get_updates()
 
         for update in response["result"]:
+            print(update)
             if mes := update.get("message"):
                 text = mes.get("text")
                 chat_id = mes["chat"]["id"]
