@@ -5,10 +5,11 @@ from Tasker import Tasker
 from time import sleep
 from copy import copy
 from gist_work import Gist
+from config import BOT_TOKEN
 
 
 class TelegramBot:
-    TOKEN = "1958366332:AAE-Pl4mc4R0ntBravSOAKPHXDVd68_mbBk"
+    TOKEN = BOT_TOKEN
     BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
     BASE_NAME = "progress.json"
     ADMIN_ID = 523468577
@@ -279,8 +280,6 @@ class TelegramBot:
 
     @staticmethod
     def __parse_task__(task):
-        # examples_raw = task[tasker.EXAMPLE_FILE].split()
-        # examples = []
 
         decorated_task = "-------------------------Условие---------------------------\n" \
                          f"{task[tasker.TASK_FILE]}\n" \

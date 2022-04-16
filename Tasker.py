@@ -1,11 +1,11 @@
 from subprocess import Popen, TimeoutExpired
 from os import listdir
 from os.path import isfile
+from config import PYTHON_PATH
 
 
 class Tasker:
-    PYTHON_PATH = "/app/.heroku/python/bin/python"
-    # PYTHON_PATH = "python.exe"
+    PYTHON_PATH = PYTHON_PATH
     TESTS_FOLDER = "tests"
     TASKS_FOLDER = "tasks"
     INPUT_FILE = "input.txt"

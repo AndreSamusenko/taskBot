@@ -1,11 +1,12 @@
 import requests
 from threading import Thread
 from time import sleep
+from config import GIST_TOKEN
 
 
 class Gist:
     GITHUB_API = 'https://api.github.com/gists'
-    GIST_TOKEN = "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"
+    GIST_TOKEN = GIST_TOKEN
     headers = {'Authorization': f'token {GIST_TOKEN}'}
     MAX_GISTS = 100
 
@@ -49,8 +50,6 @@ class Gist:
                 else:
                     self.gists_by_lan[lang] = [{"name": name, "link": gist['html_url']}]
 
-# r = requests.get(GITHUB_API + "/" + '988f839bdddb563e1a0c64fea88955bf', headers=headers)
-# for file in r.json()["files"]:
-#     print(r.json()["files"][file]["content"])
-# print()
+
+
 
